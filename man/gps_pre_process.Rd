@@ -32,7 +32,6 @@ Choices include:
 \itemize{
 \item \code{"logit"} – Multinomial logistic regression (via \pkg{nnet})
 \item \code{"gbm"} – Generalized boosted model (via \pkg{gbm})
-\item \code{"rf"} – Random forest (future extension)
 \item \code{"gam"} – Generalized additive model (via \pkg{VGAM})
 }}
 
