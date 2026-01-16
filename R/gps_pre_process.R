@@ -17,7 +17,6 @@
 #'   \itemize{
 #'     \item \code{"logit"} – Multinomial logistic regression (via \pkg{nnet})
 #'     \item \code{"gbm"} – Generalized boosted model (via \pkg{gbm})
-#'     \item \code{"rf"} – Random forest (future extension)
 #'     \item \code{"gam"} – Generalized additive model (via \pkg{VGAM})
 #'   }
 #' @param gps_params An optional named list of model-specific parameters.
@@ -59,6 +58,7 @@
 #' \pkg{caret}. If invalid parameters are found, an informative message is returned
 #' indicating the correct parameter set.
 #'
+#' @export
 #' @importFrom splines bs
 #' @importFrom nnet multinom
 #' @importFrom gbm gbm gbm.perf
