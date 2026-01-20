@@ -75,7 +75,7 @@ dr_gpsm <- function(data,
   get_outcome_user <- function(name) { if (is.null(outcome_params) || !is.list(outcome_params)) return(NULL); outcome_params[[name]] }
   `%||%` <- function(a,b) if (is.null(a)) b else a
 
-  # NEW: separate caret defaults for classification vs regression
+  # separate caret defaults for classification vs regression
   .default_tc_cls <- function(summary = c("multi","two")) {
     summary <- match.arg(summary)
     caret::trainControl(
@@ -217,14 +217,19 @@ dr_gpsm <- function(data,
                    rf_par <- .merge_defaults(rf_def, get_outcome_user("rf"))
                    function(df) {
                      form <- stats::reformulate(cov_vars, response = outcome_var)
-                     do.call(randomForest::randomForest, c(list(formula = form, data = df), rf_par))
+
+                     args <- c(list(formula = form, data = df), rf_par)
+
+                     if (is.null(args$mtry)) args$mtry <- NULL
+                     args <- args[!(names(args) %in% "mtry" & vapply(args, is.null, logical(1)))]
+
+                     do.call(randomForest::randomForest, args)
                    }
                  }
                },
 
                gbm = {
                  if (isTRUE(outcome_tune)) {
-                   # choose correct trainControl
                    tc <- if (!is_binary) {
                      outcome_tune_control %||% .default_tc_reg()
                    } else {
