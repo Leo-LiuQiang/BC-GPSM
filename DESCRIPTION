@@ -1,6 +1,6 @@
 Package: BC.GPSM
 Title: Bias Corrected Generalized Propensity Score Matching
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: c(
   person(given  = "Qiang",
          family = "Liu",
@@ -31,6 +31,7 @@ Description: Implements bias-corrected generalized propensity score matching
 URL: https://leo-liuqiang.github.io/BC-GPSM/, https://github.com/Leo-LiuQiang/BC-GPSM
 BugReports: https://github.com/Leo-LiuQiang/BC-GPSM/issues
 License: MIT + file LICENSE
+Language: en-US
 Depends:
     R (>= 4.1.0)
 Encoding: UTF-8

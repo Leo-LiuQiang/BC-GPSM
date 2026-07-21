@@ -16,3 +16,4 @@
 ^R/\.RData$
 ^tests/\.DS_Store$
 ^tests/testthat/\.Rhistory$
+^cran-comments\.md$
