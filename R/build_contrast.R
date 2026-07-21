@@ -3,7 +3,7 @@
 #' @param levels Character vector of treatment levels
 #' @param ref    Reference treatment level. If \code{NULL}, the last level is used.
 #'
-#' @return A contrast matrix of size Choose(K, 2) × K with entries -1, 0, or 1
+#' @return A contrast matrix of size Choose(K, 2) x K with entries -1, 0, or 1
 #' @export
 #'
 #' @examples

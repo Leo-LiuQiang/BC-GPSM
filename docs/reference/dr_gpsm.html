@@ -236,6 +236,16 @@ models ('rf','gbm').</p></dd>
 
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The treatment, covariate, and outcome arguments must identify distinct,
+named columns. Missing outcome values are not currently modeled and produce
+an error with guidance to remove or impute them before fitting. For
+<code>outcome_model = "lm"</code>, binary outcomes should be encoded numerically as
+0/1. Each treatment arm must contain at least <code>folds</code> observations and
+at least <code>match_ratio</code> potential donors. Invalid settings are reported
+before nuisance-model fitting with an actionable error message.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

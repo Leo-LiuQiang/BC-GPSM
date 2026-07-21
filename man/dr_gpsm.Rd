@@ -117,6 +117,15 @@ can be fitted via LM, RF, GBM, GAM, XGBoost, or ranger. Flexible learners and
 tuning integrations require optional packages. The XGBoost and ranger
 backends are experimental and remain under active testing.
 }
+\details{
+The treatment, covariate, and outcome arguments must identify distinct,
+named columns. Missing outcome values are not currently modeled and produce
+an error with guidance to remove or impute them before fitting. For
+\code{outcome_model = "lm"}, binary outcomes should be encoded numerically as
+0/1. Each treatment arm must contain at least \code{folds} observations and
+at least \code{match_ratio} potential donors. Invalid settings are reported
+before nuisance-model fitting with an actionable error message.
+}
 \examples{
 set.seed(1)
 n <- 75

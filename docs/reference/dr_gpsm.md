@@ -194,6 +194,17 @@ A list with components:
 
   Named numeric vector of upper 95% confidence bounds.
 
+## Details
+
+The treatment, covariate, and outcome arguments must identify distinct,
+named columns. Missing outcome values are not currently modeled and
+produce an error with guidance to remove or impute them before fitting.
+For `outcome_model = "lm"`, binary outcomes should be encoded
+numerically as 0/1. Each treatment arm must contain at least `folds`
+observations and at least `match_ratio` potential donors. Invalid
+settings are reported before nuisance-model fitting with an actionable
+error message.
+
 ## Examples
 
 ``` r

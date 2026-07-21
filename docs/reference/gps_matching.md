@@ -41,11 +41,11 @@ gps_matching(
 
 - pred:
 
-  pred K × n matrix of m_k(X) predictions aligned with rows of data
+  pred K x n matrix of m_k(X) predictions aligned with rows of data
 
 - contrast:
 
-  C(K, 2) × K contrast matrix from build_contrast()
+  C(K, 2) x K contrast matrix from build_contrast()
 
 - nboot:
 
@@ -75,7 +75,7 @@ gps_matching(
 
 - match_ratio:
 
-  Integer ≥ 1; number of matches per unit per target group
+  Integer \>= 1; number of matches per unit per target group
 
 - return_tau:
 

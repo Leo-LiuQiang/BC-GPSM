@@ -256,6 +256,56 @@ and outcome-model backends:</p>
 For now, use them as sensitivity analyses and report their package
 versions and model settings whenever results are shared.</p>
 </div>
+<div class="section level2">
+<h2 id="common-input-errors">Common Input Errors<a class="anchor" aria-label="anchor" href="#common-input-errors"></a>
+</h2>
+<p><code><a href="../reference/dr_gpsm.html">dr_gpsm()</a></code> validates common problems before fitting the
+nuisance models:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">Message mentions</th>
+<th align="left">Resolution</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">Missing values in <code>outcome</code>
+</td>
+<td align="left">Remove or impute missing outcomes before fitting.</td>
+</tr>
+<tr class="even">
+<td align="left">Too few observations for <code>folds</code>
+</td>
+<td align="left">Reduce <code>folds</code>, combine or remove the rare
+treatment arm, or use more data.</td>
+</tr>
+<tr class="odd">
+<td align="left">Too few donors for <code>match_ratio</code>
+</td>
+<td align="left">Reduce <code>match_ratio</code> or increase the
+affected treatment arm.</td>
+</tr>
+<tr class="even">
+<td align="left">A nonnumeric outcome with
+<code>outcome_model = "lm"</code>
+</td>
+<td align="left">Encode binary outcomes as numeric 0/1, or select a
+model that supports factor outcomes.</td>
+</tr>
+<tr class="odd">
+<td align="left">A required optional package</td>
+<td align="left">Install the package named in the error and rerun the
+call.</td>
+</tr>
+</tbody>
+</table>
+<p>These checks concern whether the software can fit the requested
+analysis. They do not replace overlap, balance, or model-adequacy
+diagnostics.</p>
+</div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>

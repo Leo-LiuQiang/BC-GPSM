@@ -302,8 +302,45 @@
 <div class="section level2">
 <h2 id="troubleshooting">Troubleshooting<a class="anchor" aria-label="anchor" href="#troubleshooting"></a>
 </h2>
+<p>Common input errors are reported before model fitting:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th align="left">Message mentions</th>
+<th align="left">What to do</th>
+</tr></thead>
+<tbody>
+<tr>
+<td align="left">Missing values in <code>outcome</code>
+</td>
+<td align="left">Remove or impute missing outcomes before fitting. Missing-outcome models are not currently implemented.</td>
+</tr>
+<tr>
+<td align="left">Too few observations for <code>folds</code>
+</td>
+<td align="left">Reduce <code>folds</code>, combine or remove a rare treatment arm, or use more data.</td>
+</tr>
+<tr>
+<td align="left">Too few donors for <code>match_ratio</code>
+</td>
+<td align="left">Reduce <code>match_ratio</code> or increase the size of the affected treatment arm.</td>
+</tr>
+<tr>
+<td align="left">A nonnumeric outcome with <code>outcome_model = "lm"</code>
+</td>
+<td align="left">Encode a binary outcome as numeric 0/1, or choose a model that supports factor outcomes.</td>
+</tr>
+<tr>
+<td align="left">An optional package is required</td>
+<td align="left">Install the package named in the error, then rerun the same call.</td>
+</tr>
+</tbody>
+</table>
+<p>Additional diagnostic guidance:</p>
 <ul>
-<li>If <code><a href="reference/dr_gpsm.html">dr_gpsm()</a></code> reports too few observations in a treatment arm, reduce <code>folds</code>, combine rare treatment levels, or use a larger dataset.</li>
 <li>If GPS diagnostics show poor overlap, interpret the affected contrasts with caution.</li>
 <li>Optional learners are checked only when selected. If one is unavailable, the error message names the package and its installation command.</li>
 <li>The <code>xgboost</code> and <code>ranger</code> backends are under active testing; keep them out of primary analyses until their behavior is better validated.</li>

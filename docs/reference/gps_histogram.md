@@ -27,7 +27,7 @@ gps_histogram(data, bins = 30, palette = NULL, alpha = 0.4, eps = 1e-06)
 
 - alpha:
 
-  Fill transparency (0–1, default = 0.4) for overlapping areas
+  Fill transparency (0-1, default = 0.4) for overlapping areas
 
 - eps:
 

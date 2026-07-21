@@ -195,3 +195,20 @@ install.packages(c("xgboost", "ranger"))
 These two backends are experimental and remain under active testing. For
 now, use them as sensitivity analyses and report their package versions
 and model settings whenever results are shared.
+
+## Common Input Errors
+
+[`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md)
+validates common problems before fitting the nuisance models:
+
+| Message mentions | Resolution |
+|:---|:---|
+| Missing values in `outcome` | Remove or impute missing outcomes before fitting. |
+| Too few observations for `folds` | Reduce `folds`, combine or remove the rare treatment arm, or use more data. |
+| Too few donors for `match_ratio` | Reduce `match_ratio` or increase the affected treatment arm. |
+| A nonnumeric outcome with `outcome_model = "lm"` | Encode binary outcomes as numeric 0/1, or select a model that supports factor outcomes. |
+| A required optional package | Install the package named in the error and rerun the call. |
+
+These checks concern whether the software can fit the requested
+analysis. They do not replace overlap, balance, or model-adequacy
+diagnostics.

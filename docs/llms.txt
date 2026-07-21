@@ -214,10 +214,18 @@ most users need first.
 
 ## Troubleshooting
 
-- If
-  [`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md)
-  reports too few observations in a treatment arm, reduce `folds`,
-  combine rare treatment levels, or use a larger dataset.
+Common input errors are reported before model fitting:
+
+| Message mentions | What to do |
+|:---|:---|
+| Missing values in `outcome` | Remove or impute missing outcomes before fitting. Missing-outcome models are not currently implemented. |
+| Too few observations for `folds` | Reduce `folds`, combine or remove a rare treatment arm, or use more data. |
+| Too few donors for `match_ratio` | Reduce `match_ratio` or increase the size of the affected treatment arm. |
+| A nonnumeric outcome with `outcome_model = "lm"` | Encode a binary outcome as numeric 0/1, or choose a model that supports factor outcomes. |
+| An optional package is required | Install the package named in the error, then rerun the same call. |
+
+Additional diagnostic guidance:
+
 - If GPS diagnostics show poor overlap, interpret the affected contrasts
   with caution.
 - Optional learners are checked only when selected. If one is

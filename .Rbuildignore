@@ -2,10 +2,12 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^README\.Rmd$
+^README\.html$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
 ^\.git$
+^\.github$
 ^\.gitignore$
 ^\.DS_Store$
 ^\.Rhistory$

@@ -29,9 +29,9 @@ gps_matching(
 
 \item{outcome}{Column index of the outcome variable}
 
-\item{pred}{pred K × n matrix of m_k(X) predictions aligned with rows of data}
+\item{pred}{pred K x n matrix of m_k(X) predictions aligned with rows of data}
 
-\item{contrast}{C(K, 2) × K contrast matrix from build_contrast()}
+\item{contrast}{C(K, 2) x K contrast matrix from build_contrast()}
 
 \item{nboot}{Number of bootstrap replications (only used if do_boot=TRUE; can be NULL otherwise)}
 
@@ -45,7 +45,7 @@ gps_matching(
 
 \item{ridge}{Small ridge for covariance in Mahalanobis whitening}
 
-\item{match_ratio}{Integer ≥ 1; number of matches per unit per target group}
+\item{match_ratio}{Integer >= 1; number of matches per unit per target group}
 
 \item{return_tau}{Logical; if TRUE, also return tau (and tau_centered)}
 

@@ -20,7 +20,7 @@ build_contrast(levels, ref = NULL)
 
 ## Value
 
-A contrast matrix of size Choose(K, 2) × K with entries -1, 0, or 1
+A contrast matrix of size Choose(K, 2) x K with entries -1, 0, or 1
 
 ## Examples
 

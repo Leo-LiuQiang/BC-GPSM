@@ -3,7 +3,7 @@
 #' @param data    Data frame returned by \code{gps_pre_process()} (must contain \code{gps_} columns)
 #' @param bins    Number of histogram bins (default = 30)
 #' @param palette Character vector of fill colors (recycled if shorter than the number of GPS columns)
-#' @param alpha   Fill transparency (0–1, default = 0.4) for overlapping areas
+#' @param alpha   Fill transparency (0-1, default = 0.4) for overlapping areas
 #' @param eps     Small value to truncate probabilities (avoids Inf after logit; default = 1e-6)
 #'
 #' @return A ggplot object showing overlaid histograms and density curves of GPS distributions

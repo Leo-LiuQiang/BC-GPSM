@@ -7,6 +7,15 @@
 #' tuning integrations require optional packages. The XGBoost and ranger
 #' backends are experimental and remain under active testing.
 #'
+#' @details
+#' The treatment, covariate, and outcome arguments must identify distinct,
+#' named columns. Missing outcome values are not currently modeled and produce
+#' an error with guidance to remove or impute them before fitting. For
+#' `outcome_model = "lm"`, binary outcomes should be encoded numerically as
+#' 0/1. Each treatment arm must contain at least `folds` observations and
+#' at least `match_ratio` potential donors. Invalid settings are reported
+#' before nuisance-model fitting with an actionable error message.
+#'
 #' @param data Data frame with treatment, covariates, and outcome variables
 #' @param treatment Column index of the treatment variable
 #' @param treatment_ref Reference treatment level. If \code{NULL}, the last
@@ -227,20 +236,108 @@ dr_gpsm <- function(data,
     as.numeric(yvec)
   }
 
+  .is_whole_number <- function(x) {
+    is.numeric(x) && length(x) == 1L && !is.na(x) && is.finite(x) &&
+      x == floor(x)
+  }
+
+  .validate_column_index <- function(index, argument, multiple = FALSE) {
+    valid_length <- if (multiple) length(index) >= 1L else length(index) == 1L
+    if (!is.numeric(index) || !valid_length || anyNA(index) ||
+        any(!is.finite(index)) || any(index != floor(index))) {
+      expected <- if (multiple) "one or more integer column indices" else "one integer column index"
+      stop(sprintf("`%s` must contain %s.", argument, expected), call. = FALSE)
+    }
+    if (any(index < 1L | index > ncol(data))) {
+      stop(
+        sprintf(
+          "`%s` contains a column index outside 1:%d. Check the column positions in `data`.",
+          argument, ncol(data)
+        ),
+        call. = FALSE
+      )
+    }
+    invisible(TRUE)
+  }
+
   ## -- args and preprocessing --
   if (requireNamespace("foreach", quietly = TRUE)) foreach::registerDoSEQ()
+
+  if (!is.data.frame(data)) {
+    stop("`data` must be a data.frame.", call. = FALSE)
+  }
+  if (nrow(data) == 0L || ncol(data) == 0L) {
+    stop("`data` must contain at least one row and one column.", call. = FALSE)
+  }
+  if (is.null(names(data)) || any(!nzchar(names(data))) || anyDuplicated(names(data))) {
+    stop("Every column in `data` must have a unique, non-empty name.", call. = FALSE)
+  }
+  .validate_column_index(treatment, "treatment")
+  .validate_column_index(covariate, "covariate", multiple = TRUE)
+  .validate_column_index(outcome, "outcome")
+  if (anyDuplicated(covariate)) {
+    stop("`covariate` must not contain duplicate column indices.", call. = FALSE)
+  }
+  if (treatment %in% covariate || outcome %in% covariate || treatment == outcome) {
+    stop(
+      "`treatment`, `covariate`, and `outcome` must refer to distinct columns.",
+      call. = FALSE
+    )
+  }
+
   gps_model     <- match.arg(gps_model)
   outcome_model <- match.arg(outcome_model)
   match_on      <- match.arg(match_on)
   cov_distance  <- match.arg(cov_distance)
-  stopifnot(is.numeric(folds), length(folds)==1L, folds >= 2)
+
+  if (!.is_whole_number(folds) || folds < 2L) {
+    stop("`folds` must be a single integer greater than or equal to 2.", call. = FALSE)
+  }
   folds <- as.integer(folds)
+  if (!.is_whole_number(nboot) || nboot < 1L) {
+    stop("`nboot` must be a single integer greater than or equal to 1.", call. = FALSE)
+  }
+  nboot <- as.integer(nboot)
+  if (!.is_whole_number(match_ratio) || match_ratio < 1L) {
+    stop("`match_ratio` must be a single integer greater than or equal to 1.", call. = FALSE)
+  }
+  match_ratio <- as.integer(match_ratio)
+
   boot_weight <- match.arg(boot_weight)
-  stopifnot(is.logical(two_step_calibration), length(two_step_calibration)==1L)
-  stopifnot(is.numeric(calib_shrinkage), length(calib_shrinkage)==1L,
-            is.finite(calib_shrinkage), calib_shrinkage >= 0, calib_shrinkage <= 1)
+  if (!is.logical(two_step_calibration) || length(two_step_calibration) != 1L ||
+      is.na(two_step_calibration)) {
+    stop("`two_step_calibration` must be TRUE or FALSE.", call. = FALSE)
+  }
+  if (!is.numeric(calib_shrinkage) || length(calib_shrinkage) != 1L ||
+      is.na(calib_shrinkage) || !is.finite(calib_shrinkage) ||
+      calib_shrinkage < 0 || calib_shrinkage > 1) {
+    stop("`calib_shrinkage` must be one number between 0 and 1.", call. = FALSE)
+  }
+
+  outcome_var_input <- names(data)[outcome]
+  missing_outcomes <- sum(is.na(data[[outcome_var_input]]))
+  if (missing_outcomes > 0L) {
+    suffix <- if (missing_outcomes == 1L) "value" else "values"
+    stop(
+      sprintf(
+        "The `outcome` column '%s' contains %d missing %s. `dr_gpsm()` does not currently model missing outcomes; remove or impute them before fitting.",
+        outcome_var_input, missing_outcomes, suffix
+      ),
+      call. = FALSE
+    )
+  }
+  if (outcome_model == "lm" && !is.numeric(data[[outcome_var_input]])) {
+    stop(
+      "`outcome_model = 'lm'` requires a numeric outcome. Encode a binary outcome as numeric 0/1, or select a model that supports factor outcomes.",
+      call. = FALSE
+    )
+  }
+
   if (isTRUE(two_step_calibration) && outcome_model == "none") {
-    stop("two_step_calibration=TRUE requires outcome_model != 'none'.")
+    stop(
+      "`two_step_calibration = TRUE` requires an outcome model; choose `outcome_model = 'lm'`, 'rf', 'gbm', 'gam', 'xgboost', or 'ranger'.",
+      call. = FALSE
+    )
   }
   if (isTRUE(two_step_calibration)) {
     .drgpsm_require_optional("glmnet", "two_step_calibration=TRUE")
@@ -301,6 +398,31 @@ dr_gpsm <- function(data,
   }
 
   n <- nrow(dat_processed)
+  arm_counts <- table(dat_processed[[trt_var]])
+  if (any(arm_counts < folds)) {
+    bad_arm <- names(arm_counts)[which(arm_counts < folds)[1L]]
+    bad_n <- unname(arm_counts[[bad_arm]])
+    suffix <- if (bad_n == 1L) "observation" else "observations"
+    stop(
+      sprintf(
+        "Cannot create reliable cross-fitting folds: treatment arm '%s' has %d %s, but `folds = %d`. Each treatment arm needs at least `folds` observations. Reduce `folds`, combine or remove the rare arm, or use more data.",
+        bad_arm, bad_n, suffix, folds
+      ),
+      call. = FALSE
+    )
+  }
+  if (any(arm_counts < match_ratio)) {
+    bad_arm <- names(arm_counts)[which(arm_counts < match_ratio)[1L]]
+    bad_n <- unname(arm_counts[[bad_arm]])
+    stop(
+      sprintf(
+        "Treatment arm '%s' has %d observations, fewer than `match_ratio = %d`. Reduce `match_ratio` or use more observations in that arm.",
+        bad_arm, bad_n, match_ratio
+      ),
+      call. = FALSE
+    )
+  }
+
   make_folds <- function(fac, K) {
     stopifnot(is.factor(fac))
     inds  <- split(seq_along(fac), fac)

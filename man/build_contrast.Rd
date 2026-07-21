@@ -12,7 +12,7 @@ build_contrast(levels, ref = NULL)
 \item{ref}{Reference treatment level. If \code{NULL}, the last level is used.}
 }
 \value{
-A contrast matrix of size Choose(K, 2) × K with entries -1, 0, or 1
+A contrast matrix of size Choose(K, 2) x K with entries -1, 0, or 1
 }
 \description{
 Create all-pairwise contrast matrix

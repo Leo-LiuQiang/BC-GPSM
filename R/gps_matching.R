@@ -5,15 +5,15 @@
 #' @param data        Data frame
 #' @param treatment   Column index of the treatment variable (factor)
 #' @param outcome     Column index of the outcome variable
-#' @param pred        pred K × n matrix of m_k(X) predictions aligned with rows of data
-#' @param contrast    C(K, 2) × K contrast matrix from build_contrast()
+#' @param pred        pred K x n matrix of m_k(X) predictions aligned with rows of data
+#' @param contrast    C(K, 2) x K contrast matrix from build_contrast()
 #' @param nboot       Number of bootstrap replications (only used if do_boot=TRUE; can be NULL otherwise)
 #' @param match_on    'gps' (default) or 'covariates'
 #' @param covariate   Numeric vector of covariate column indices (required if match_on='covariates')
 #' @param cov_distance 'euclidean' or 'mahalanobis' (only for match_on='covariates')
 #' @param standardize Logical; standardize covariate features before matching
 #' @param ridge       Small ridge for covariance in Mahalanobis whitening
-#' @param match_ratio Integer ≥ 1; number of matches per unit per target group
+#' @param match_ratio Integer >= 1; number of matches per unit per target group
 #' @param return_tau  Logical; if TRUE, also return tau (and tau_centered)
 #' @param do_boot     Logical; if TRUE, compute bootstrap CI within this fold; if FALSE, skip (ci_* = NA)
 #' @param boot_weight Bootstrap reweighting scheme: 'multinom' or 'exp' (only used when \code{do_boot=TRUE}).
