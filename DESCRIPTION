@@ -31,6 +31,8 @@ Description: Implements bias-corrected generalized propensity score matching
 URL: https://leo-liuqiang.github.io/BC-GPSM/, https://github.com/Leo-LiuQiang/BC-GPSM
 BugReports: https://github.com/Leo-LiuQiang/BC-GPSM/issues
 License: MIT + file LICENSE
+Depends:
+    R (>= 4.1.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
