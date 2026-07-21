@@ -42,7 +42,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           tlmgr update --self
-          tlmgr install courier
+          tlmgr install courier makeindex
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
