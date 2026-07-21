@@ -1,14 +1,23 @@
 #' Create all-pairwise contrast matrix
 #'
 #' @param levels Character vector of treatment levels
-#' @param ref    Reference treatment level (default = first level)
+#' @param ref    Reference treatment level. If \code{NULL}, the last level is used.
 #'
 #' @return A contrast matrix of size Choose(K, 2) × K with entries -1, 0, or 1
 #' @export
+#'
+#' @examples
+#' build_contrast(c("A", "B", "C"), ref = "A")
+#' build_contrast(c("A", "B", "C"))
 build_contrast <- function(levels, ref = NULL)
 {
-  if (is.null(ref)) ref <- levels[1L]
-  stopifnot(ref %in% levels)
+  if (!is.character(levels) || length(levels) < 2L) {
+    stop("`levels` must be a character vector with at least two treatment levels.")
+  }
+  if (is.null(ref)) ref <- levels[length(levels)]
+  if (!ref %in% levels) {
+    stop("`ref` must be one of the supplied treatment levels.")
+  }
 
   K <- length(levels)
   mat <- matrix(0, nrow = choose(K, 2), ncol = K,

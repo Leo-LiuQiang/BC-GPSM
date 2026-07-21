@@ -10,10 +10,12 @@ dr_gpsm(
   treatment_ref = NULL,
   covariate,
   outcome,
-  gps_model = c("logit", "gbm", "gam"),
-  outcome_model = c("none", "lm", "rf", "gbm", "gam"),
+  gps_model = c("logit", "gbm", "gam", "xgboost", "ranger"),
+  outcome_model = c("none", "lm", "rf", "gbm", "gam", "xgboost", "ranger"),
   folds = 2,
+  fold_seed = 12345,
   nboot = 500,
+  boot_weight = c("multinom", "exp"),
   hist = FALSE,
   hist_path = NULL,
   gps_params = NULL,
@@ -25,11 +27,13 @@ dr_gpsm(
   gps_tune = FALSE,
   gps_tune_control = NULL,
   gps_tune_grids = NULL,
-  gps_seed = 2025,
+  gps_seed = 12345,
   outcome_tune = FALSE,
   outcome_tune_control = NULL,
   outcome_tune_grids = NULL,
-  outcome_seed = 2025
+  outcome_seed = 12345,
+  two_step_calibration = FALSE,
+  calib_shrinkage = 1
 )
 }
 \arguments{
@@ -37,21 +41,29 @@ dr_gpsm(
 
 \item{treatment}{Column index of the treatment variable}
 
-\item{treatment_ref}{Reference treatment level (default = first level)}
+\item{treatment_ref}{Reference treatment level. If \code{NULL}, the last
+observed treatment level is used. The selected reference is moved to the
+first factor level internally for GPS log-ratio construction.}
 
 \item{covariate}{Numeric vector of covariate column indices}
 
 \item{outcome}{Column index of the outcome variable}
 
-\item{gps_model}{Choice of GPS model: 'logit', 'gbm', or 'gam'}
+\item{gps_model}{Choice of GPS model: 'logit', 'gbm', 'gam', 'xgboost', or
+'ranger'. All choices except 'logit' require optional packages.}
 
-\item{outcome_model}{Choice of outcome model: 'none','lm','rf','gbm','gam'}
+\item{outcome_model}{Choice of outcome model: 'none','lm','rf','gbm','gam',
+'xgboost', or 'ranger'. Flexible learners require optional packages.}
 
 \item{folds}{Number of folds for cross-fitting (default = 2)}
 
+\item{fold_seed}{Integer seed for fold assignment (default 12345).}
+
 \item{nboot}{Number of bootstrap replications (default = 500)}
 
-\item{hist}{Logical; TRUE to save GPS histogram}
+\item{boot_weight}{Bootstrap reweighting scheme: 'multinom' or 'exp'.}
+
+\item{hist}{Logical; TRUE to save a diagnostic full-sample GPS histogram}
 
 \item{hist_path}{File path (pdf/png/jpg) to save histogram if hist = TRUE}
 
@@ -67,21 +79,27 @@ dr_gpsm(
 
 \item{match_ratio}{Integer >= 1; number of matches per unit per target group (default 1)}
 
-\item{gps_tune}{Logical; if TRUE, enable caret tuning for GPS ('logit','gbm')}
+\item{gps_tune}{Logical; if TRUE, enable optional caret tuning for GPS
+('logit','gbm').}
 
 \item{gps_tune_control}{Optional \code{caret::trainControl()} for GPS tuning; default is 5-fold CV}
 
 \item{gps_tune_grids}{Optional named list of GPS tuning grids (e.g., \code{list(gbm = ..., logit = ...)})}
 
-\item{gps_seed}{Integer seed for GPS tuning and fitting (default 2025)}
+\item{gps_seed}{Integer seed for GPS tuning and fitting (default 12345)}
 
-\item{outcome_tune}{Logical; if TRUE, enable caret tuning for outcome models ('rf','gbm')}
+\item{outcome_tune}{Logical; if TRUE, enable optional caret tuning for outcome
+models ('rf','gbm').}
 
 \item{outcome_tune_control}{Optional \code{caret::trainControl()} for outcome tuning}
 
 \item{outcome_tune_grids}{Optional named list of outcome tuning grids (e.g., \code{list(rf = ..., gbm = ...)})}
 
-\item{outcome_seed}{Integer seed for outcome tuning and fitting (default 2025)}
+\item{outcome_seed}{Integer seed for outcome tuning and fitting (default 12345)}
+
+\item{two_step_calibration}{Logical; if TRUE, apply two-step residual calibration using ridge on GPS index V.}
+
+\item{calib_shrinkage}{Numeric in \code{[0,1]}; shrinkage multiplier applied to the calibration step size gamma.}
 }
 \value{
 A list with components:
@@ -94,7 +112,33 @@ A list with components:
 \description{
 Implements a doubly-robust generalized propensity score (GPS) matching estimator
 with optional cross-fitting and bootstrap inference. GPS can be estimated via
-multinomial logistic regression, GBM, or VGAM-based GAM; outcome models can be
-fitted via LM, RF, GBM, or GAM. Both GPS and outcome models support optional
-caret-based hyperparameter tuning with parameter-grid validation.
+multinomial logistic regression, GBM, GAM, XGBoost, or ranger; outcome models
+can be fitted via LM, RF, GBM, GAM, XGBoost, or ranger. Flexible learners and
+tuning integrations require optional packages. The XGBoost and ranger
+backends are experimental and remain under active testing.
+}
+\examples{
+set.seed(1)
+n <- 75
+dat <- data.frame(
+  trt = factor(rep(c("A", "B", "C"), each = 25)),
+  x1 = rnorm(n),
+  x2 = runif(n)
+)
+dat$y <- 1 + 0.4 * (dat$trt == "B") + 0.8 * (dat$trt == "C") +
+  dat$x1 + rnorm(n, sd = 0.5)
+
+fit <- dr_gpsm(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:3,
+  outcome = 4,
+  gps_model = "logit",
+  outcome_model = "lm",
+  folds = 2,
+  nboot = 10
+)
+
+fit$estimate
 }

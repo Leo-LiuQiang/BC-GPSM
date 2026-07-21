@@ -1,4 +1,4 @@
 library(testthat)
-library(DR.GPSM)
+library(BC.GPSM)
 
-test_check("DR.GPSM")
+test_check("BC.GPSM")

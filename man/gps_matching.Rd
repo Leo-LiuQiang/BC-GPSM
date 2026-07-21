@@ -2,7 +2,7 @@
 % Please edit documentation in R/gps_matching.R
 \name{gps_matching}
 \alias{gps_matching}
-\title{GPS- or Covariate-matching ATE estimator  (numeric-column interface)}
+\title{GPS- or Covariate-matching ATE estimator (numeric-column interface)}
 \usage{
 gps_matching(
   data,
@@ -10,43 +10,86 @@ gps_matching(
   outcome,
   pred,
   contrast,
-  nboot,
+  nboot = NULL,
   match_on = c("gps", "covariates"),
   covariate = NULL,
   cov_distance = c("mahalanobis", "euclidean"),
   standardize = FALSE,
   ridge = 1e-08,
-  match_ratio = 1L
+  match_ratio = 1L,
+  return_tau = FALSE,
+  do_boot = FALSE,
+  boot_weight = c("multinom", "exp")
 )
 }
 \arguments{
-\item{data}{Data frame (within-fold subset)}
+\item{data}{Data frame}
 
 \item{treatment}{Column index of the treatment variable (factor)}
 
 \item{outcome}{Column index of the outcome variable}
 
-\item{pred}{K × n cross-fitted residual matrix from the outcome model}
+\item{pred}{pred K × n matrix of m_k(X) predictions aligned with rows of data}
 
 \item{contrast}{C(K, 2) × K contrast matrix from build_contrast()}
 
-\item{nboot}{Number of bootstrap replications}
+\item{nboot}{Number of bootstrap replications (only used if do_boot=TRUE; can be NULL otherwise)}
 
 \item{match_on}{'gps' (default) or 'covariates'}
 
 \item{covariate}{Numeric vector of covariate column indices (required if match_on='covariates')}
 
-\item{cov_distance}{'euclidean' (default) or 'mahalanobis' (only for match_on='covariates')}
+\item{cov_distance}{'euclidean' or 'mahalanobis' (only for match_on='covariates')}
 
-\item{standardize}{Logical; standardize covariate features before matching (default TRUE)}
+\item{standardize}{Logical; standardize covariate features before matching}
 
-\item{ridge}{Small ridge for covariance in Mahalanobis whitening (default 1e-8)}
+\item{ridge}{Small ridge for covariance in Mahalanobis whitening}
 
-\item{match_ratio}{Integer ≥ 1; number of matches per unit per target group (default 1)}
+\item{match_ratio}{Integer ≥ 1; number of matches per unit per target group}
+
+\item{return_tau}{Logical; if TRUE, also return tau (and tau_centered)}
+
+\item{do_boot}{Logical; if TRUE, compute bootstrap CI within this fold; if FALSE, skip (ci_* = NA)}
+
+\item{boot_weight}{Bootstrap reweighting scheme: 'multinom' or 'exp' (only used when \code{do_boot=TRUE}).}
 }
 \value{
-list(estimate, ci_lower, ci_upper)
+list(estimate, ci_lower, ci_upper, tau?, tau_centered?)
 }
 \description{
-GPS- or Covariate-matching ATE estimator  (numeric-column interface)
+For cross-fitted inference, use dr_gpsm(); gps_matching()'s bootstrap is intended for standalone (non-cross-fitted) usage.
+}
+\examples{
+set.seed(1)
+n <- 75
+dat <- data.frame(
+  trt = factor(rep(c("A", "B", "C"), each = 25)),
+  x1 = rnorm(n),
+  x2 = runif(n)
+)
+dat$y <- 1 + 0.4 * (dat$trt == "B") + 0.8 * (dat$trt == "C") +
+  dat$x1 + rnorm(n, sd = 0.5)
+
+gps_dat <- gps_pre_process(
+  dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:3,
+  gps_model = "logit"
+)
+contrast <- build_contrast(levels(gps_dat$trt), ref = "A")
+arm_means <- tapply(gps_dat$y, gps_dat$trt, mean)[levels(gps_dat$trt)]
+pred <- matrix(rep(as.numeric(arm_means), each = nrow(gps_dat)),
+  nrow = length(arm_means),
+  byrow = TRUE
+)
+
+gps_matching(
+  data = gps_dat,
+  treatment = 1,
+  outcome = 4,
+  pred = pred,
+  contrast = contrast,
+  do_boot = FALSE
+)
 }

@@ -9,11 +9,15 @@ build_contrast(levels, ref = NULL)
 \arguments{
 \item{levels}{Character vector of treatment levels}
 
-\item{ref}{Reference treatment level (default = first level)}
+\item{ref}{Reference treatment level. If \code{NULL}, the last level is used.}
 }
 \value{
 A contrast matrix of size Choose(K, 2) × K with entries -1, 0, or 1
 }
 \description{
 Create all-pairwise contrast matrix
+}
+\examples{
+build_contrast(c("A", "B", "C"), ref = "A")
+build_contrast(c("A", "B", "C"))
 }

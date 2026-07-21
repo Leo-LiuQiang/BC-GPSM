@@ -1,0 +1,232 @@
+# Bias Corrected Generalized Propensity Score Matching
+
+**BC-GPSM** implements bias-corrected generalized propensity score
+matching for observational studies with binary or multi-valued
+treatments, with optional doubly robust outcome adjustment.
+
+The package is intended for causal-inference workflows where users have
+a treatment variable, a set of baseline covariates, and an outcome, and
+want pairwise treatment contrasts with bootstrap confidence intervals.
+
+## Installation
+
+``` r
+
+# install.packages("devtools")
+devtools::install_github("Leo-LiuQiang/BC-GPSM")
+```
+
+The baseline `gps_model = "logit"` and `outcome_model = "lm"` workflow
+is available without installing the optional modeling stack. Install
+only the extensions needed for a planned analysis:
+
+``` r
+
+install.packages(c(
+  "gbm", "mgcv", "VGAM", "randomForest", "glmnet",
+  "caret", "ModelMetrics", "pROC", "foreach"
+))
+
+# Experimental backends; install only when testing these model choices.
+install.packages(c("xgboost", "ranger"))
+```
+
+Flexible learners and tuning integrations are optional. The XGBoost and
+ranger GPS and outcome backends are still in testing development and
+should currently be treated as experimental sensitivity analyses, not
+default specifications.
+
+## Quick Start
+
+``` r
+
+library(BC.GPSM)
+
+set.seed(123)
+n <- 300
+z1 <- rnorm(n)
+z2 <- rnorm(n)
+age <- 50 + 8 * z1
+biomarker <- 0.6 * z2 + rnorm(n, sd = 0.5)
+severity <- 0.35 * z1 - 0.25 * z2 + rnorm(n, sd = 0.9)
+distance <- runif(n, -1, 1)
+prior_tx <- rbinom(n, 1, plogis(0.1 * z1 - 0.1 * z2))
+clinic <- factor(rbinom(n, 1, 0.45), labels = c("Rural", "Urban"))
+
+score <- cbind(
+  A = 0,
+  B = 0.35 * (0.05 * (age - 50) - 0.20 * biomarker +
+    0.18 * severity + 0.20 * prior_tx),
+  C = 0.35 * (-0.02 * (age - 50) + 0.25 * biomarker -
+    0.18 * distance + 0.18 * (clinic == "Urban"))
+)
+prob <- exp(score) / rowSums(exp(score))
+trt <- apply(prob, 1, function(p) sample(c("A", "B", "C"), 1, prob = p))
+
+dat <- data.frame(
+  trt = factor(trt, levels = c("A", "B", "C")),
+  age = age,
+  biomarker = biomarker,
+  severity = severity,
+  distance = distance,
+  prior_tx = prior_tx,
+  clinic = clinic
+)
+dat$y <- 1 + 0.5 * (dat$trt == "B") + 1.0 * (dat$trt == "C") +
+  0.03 * age - 0.4 * biomarker + 0.25 * severity - 0.2 * distance +
+  0.3 * prior_tx + 0.2 * (clinic == "Urban") + rnorm(n)
+
+fit <- dr_gpsm(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  outcome = 8,
+  gps_model = "logit",
+  outcome_model = "lm",
+  folds = 2,
+  nboot = 50
+)
+
+data.frame(
+  contrast = names(fit$estimate),
+  estimate = fit$estimate,
+  ci_lower = fit$ci_lower,
+  ci_upper = fit$ci_upper,
+  row.names = NULL
+)
+```
+
+For a first real analysis, start with `gps_model = "logit"` and
+`outcome_model = "lm"`, then compare with optional flexible nuisance
+models such as `gbm`, `gam`, or `rf` if the sample size supports them.
+XGBoost and ranger remain experimental. Use a larger `nboot` such as
+`500` or more for final reporting.
+
+## GPS Overlap Diagnostic
+
+``` r
+
+gps_dat <- gps_pre_process(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  gps_model = "logit"
+)
+
+gps_histogram(gps_dat)
+```
+
+You can also ask
+[`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md)
+to save this diagnostic plot:
+
+``` r
+
+dr_gpsm(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  outcome = 8,
+  gps_model = "logit",
+  outcome_model = "lm",
+  hist = TRUE,
+  hist_path = tempfile(fileext = ".pdf"),
+  nboot = 20
+)
+```
+
+## Balance Diagnostic
+
+Use
+[`balance_check_plot()`](https://leo-liuqiang.github.io/BC-GPSM/reference/balance_check_plot.md)
+to compare pairwise covariate balance before and after nearest-neighbor
+matching. The function reports absolute standardized mean differences
+and returns a `ggplot2` object. The example standardizes covariates
+before matching so that variables on different scales contribute
+comparably to the matching distance.
+
+``` r
+
+balance_check_plot(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  match_on = "covariates",
+  standardize = TRUE,
+  style = "love"
+)
+```
+
+## Choosing Common Options
+
+| Argument | Practical guidance |
+|----|----|
+| `treatment_ref` | Reference treatment for contrast labels and GPS log-ratios. If omitted, the default is the last treatment level. Set it explicitly when a particular control group should be the reference. |
+| `gps_model` | Use `"logit"` as the transparent baseline. `"gbm"` and `"gam"` are optional flexible learners; `"xgboost"` and `"ranger"` are optional experimental backends. |
+| `outcome_model` | Use `"none"` for matching-only estimation and `"lm"` for the baseline outcome adjustment. `"rf"`, `"gbm"`, and `"gam"` are optional flexible learners; `"xgboost"` and `"ranger"` are experimental. |
+| `folds` | Number of cross-fitting folds. Smaller values are faster; larger values may stabilize nuisance estimation in larger datasets. |
+| `nboot` | Number of bootstrap replications for confidence intervals. Small values are useful for examples only. |
+| `match_on` | `"gps"` matches on the GPS log-ratio index. `"covariates"` matches directly on the supplied covariates. |
+
+## Interpreting Output
+
+[`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md)
+returns a list with:
+
+- `estimate`: estimated pairwise average treatment effects;
+- `ci_lower`: lower confidence limits;
+- `ci_upper`: upper confidence limits.
+
+Contrast names use the form `BvA`, meaning the estimated mean potential
+outcome under treatment `B` minus the estimated mean potential outcome
+under treatment `A`.
+
+## Main Functions
+
+| Function | Purpose |
+|----|----|
+| [`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md) | Main estimator for cross-fitted GPS matching with optional outcome adjustment. |
+| [`gps_pre_process()`](https://leo-liuqiang.github.io/BC-GPSM/reference/gps_pre_process.md) | Builds treatment factors, GPS columns, and log-GPS columns. |
+| [`gps_matching()`](https://leo-liuqiang.github.io/BC-GPSM/reference/gps_matching.md) | Lower-level matching engine used by [`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md). |
+| [`build_contrast()`](https://leo-liuqiang.github.io/BC-GPSM/reference/build_contrast.md) | Creates all pairwise treatment-contrast matrices. |
+| [`gps_histogram()`](https://leo-liuqiang.github.io/BC-GPSM/reference/gps_histogram.md) | Plots GPS distributions to inspect overlap. |
+| [`balance_check_plot()`](https://leo-liuqiang.github.io/BC-GPSM/reference/balance_check_plot.md) | Creates Love plots for covariate balance before and after matching. |
+
+## Method in Brief
+
+The workflow has four main steps:
+
+1.  Estimate treatment probabilities, also called generalized propensity
+    scores.
+2.  Convert the GPS to log-ratio matching features relative to a
+    reference treatment.
+3.  Match observations across treatment groups.
+4.  Estimate pairwise treatment effects, optionally using
+    outcome-regression predictions for doubly robust adjustment.
+
+The manuscript contains the full theoretical framework and assumptions.
+The README focuses on the package workflow and the function arguments
+most users need first.
+
+## Troubleshooting
+
+- If
+  [`dr_gpsm()`](https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.md)
+  reports too few observations in a treatment arm, reduce `folds`,
+  combine rare treatment levels, or use a larger dataset.
+- If GPS diagnostics show poor overlap, interpret the affected contrasts
+  with caution.
+- Optional learners are checked only when selected. If one is
+  unavailable, the error message names the package and its installation
+  command.
+- The `xgboost` and `ranger` backends are under active testing; keep
+  them out of primary analyses until their behavior is better validated.
+- If flexible models are slow, begin with `gps_model = "logit"` and
+  `outcome_model = "lm"` before adding tuning or machine-learning
+  models.
+- If a treatment should be the control group in labels such as `BvA`,
+  set `treatment_ref` explicitly.

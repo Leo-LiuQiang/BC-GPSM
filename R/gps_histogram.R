@@ -1,4 +1,4 @@
-#' Plot overlaid histograms of Generalized Propensity Scores
+#' Plot overlaid histograms of non-crossfitted diagnostic GPS
 #'
 #' @param data    Data frame returned by \code{gps_pre_process()} (must contain \code{gps_} columns)
 #' @param bins    Number of histogram bins (default = 30)
@@ -12,11 +12,34 @@
 #' @importFrom ggplot2 ggsave
 #' @importFrom rlang .data
 #' @importFrom ggplot2 aes after_stat
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 75
+#' dat <- data.frame(
+#'   trt = factor(rep(c("A", "B", "C"), each = 25)),
+#'   x1 = rnorm(n),
+#'   x2 = runif(n)
+#' )
+#'
+#' gps_dat <- gps_pre_process(
+#'   data = dat,
+#'   treatment = 1,
+#'   treatment_ref = "A",
+#'   covariate = 2:3,
+#'   gps_model = "logit"
+#' )
+#'
+#' gps_histogram(gps_dat, bins = 10)
 gps_histogram <- function(data,
                           bins    = 30,
                           palette = NULL,
                           alpha   = 0.4,
                           eps     = 1e-6) {
+
+  pkgs <- c("tidyr","dplyr","tidyselect","scales","ggplot2","rlang")
+  miss <- pkgs[!vapply(pkgs, requireNamespace, logical(1), quietly = TRUE)]
+  if (length(miss)) stop("gps_histogram() requires: ", paste(miss, collapse=", "))
 
   gps_cols <- grep("^gps_", names(data), value = TRUE)
   if (length(gps_cols) < 2)
@@ -50,7 +73,7 @@ gps_histogram <- function(data,
       bins      = bins,
       alpha     = alpha,
       position  = "identity",
-      aes(y = after_stat(.data$density))) +
+      ggplot2::aes(y = ggplot2::after_stat(density))) +
 
     ggplot2::geom_density(
       fill        = NA,

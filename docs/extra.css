@@ -1,0 +1,86 @@
+:root {
+  --bcgpsm-teal: #1f6f78;
+  --bcgpsm-ink: #1f2933;
+  --bcgpsm-warm: #8a5a44;
+  --bcgpsm-surface: #f7faf9;
+}
+
+body {
+  letter-spacing: 0;
+}
+
+.navbar {
+  box-shadow: 0 2px 14px rgba(31, 41, 51, 0.08);
+}
+
+.navbar-brand {
+  font-size: 0;
+  font-weight: 700;
+}
+
+.navbar-brand::after {
+  content: "BC-GPSM";
+  font-size: 1.15rem;
+}
+
+.page-header {
+  border-bottom: 1px solid rgba(31, 111, 120, 0.18);
+  margin-bottom: 1.5rem;
+}
+
+.template-home .page-header {
+  background:
+    linear-gradient(135deg, rgba(31, 111, 120, 0.11), rgba(138, 90, 68, 0.08)),
+    var(--bcgpsm-surface);
+  border: 1px solid rgba(31, 111, 120, 0.16);
+  border-radius: 0.5rem;
+  padding: 2rem;
+}
+
+.template-home .page-header h1 {
+  color: var(--bcgpsm-ink);
+  font-size: 2.35rem;
+  font-weight: 700;
+  line-height: 1.15;
+  max-width: 52rem;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+}
+
+.template-home .page-header p {
+  font-size: 1.08rem;
+}
+
+.template-home .page-header + p {
+  color: var(--bcgpsm-ink);
+  font-size: 1.08rem;
+  line-height: 1.65;
+}
+
+main a {
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.14em;
+}
+
+pre, code {
+  border-radius: 0.35rem;
+}
+
+pre {
+  border: 1px solid rgba(31, 111, 120, 0.12);
+}
+
+.ref-index th,
+.ref-index td {
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+}
+
+.contents h2,
+.contents h3 {
+  color: var(--bcgpsm-ink);
+}
+
+.pkgdown-footer {
+  border-top: 1px solid rgba(31, 111, 120, 0.14);
+}

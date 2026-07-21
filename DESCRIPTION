@@ -1,49 +1,67 @@
-Package: DR.GPSM
-Title: Doubly-Robust Generalized Propensity Score Matching for Multiple Treatments
+Package: BC.GPSM
+Title: Bias Corrected Generalized Propensity Score Matching
 Version: 0.0.1
 Authors@R: c(
-  person(given  = "Yuan",
+  person(given  = "Qiang",
          family = "Liu",
-         email  = "yuan.liu@emory.edu",
-         role   = "aut"),
+         email  = "leo.liu3@emory.edu",
+         role   = c("aut", "cre")),
   person(given  = "Mingrui",
          family = "Zhang",
          email  = "mzha322@emory.edu",
          role   = "aut"),
-  person(given  = "Qiang",
+  person(given  = "Yuan",
          family = "Liu",
-         email  = "leo.liu3@emory.edu",
-         role   = c("aut", "cre"))
+         email  = "yuan.liu@emory.edu",
+         role   = "aut")
   )
-Description: Implements the Balance-based Generalized Propensity Score Matching (BGPSM) framework for estimating average treatment effects (ATE) in observational studies with two or more treatment groups. The package provides tools to: 
-    (1) estimate generalized propensity scores (GPS) using multiple modeling options 
-    (multinomial logistic regression, random forest, gradient boosting, or GAM); 
-    (2) perform balance-based matching across all treatment levels simultaneously; 
-    (3) optionally fit outcome models for doubly-robust bias correction; and 
-    (4) visualize GPS distributions. 
-    Designed for causal inference with multi-valued treatments, suitable for applications 
-    in epidemiology, health services research, and the social sciences.
+Author: Qiang Liu [aut, cre],
+    Mingrui Zhang [aut],
+    Yuan Liu [aut]
+Maintainer: Qiang Liu <leo.liu3@emory.edu>
+Description: Implements bias-corrected generalized propensity score matching
+    for estimating average treatment effects in observational studies with two
+    or more treatment groups. The package estimates generalized propensity
+    scores, matches across all treatment levels, optionally applies
+    treatment-specific outcome adjustment, and provides overlap and covariate
+    balance diagnostics. Multinomial logistic propensity scores and linear
+    outcome models provide the baseline workflow. Flexible learners and tuning
+    integrations are optional; the XGBoost and ranger backends are experimental
+    and remain under active testing.
+URL: https://leo-liuqiang.github.io/BC-GPSM/, https://github.com/Leo-LiuQiang/BC-GPSM
+BugReports: https://github.com/Leo-LiuQiang/BC-GPSM/issues
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Imports: 
     dplyr,
-    gbm,
     ggplot2,
     nnet,
-    randomForest,
     RANN,
     rlang,
     scales,
+    splines,
     stats,
     tidyr,
     tidyselect,
-    splines,
-    VGAM,
+    utils
+Suggests:
+    caret,
+    foreach,
+    gbm,
+    glmnet,
+    knitr,
     mgcv,
-    caret
-Suggests: 
-    testthat (>= 3.0.0)
+    ModelMetrics,
+    pkgdown,
+    pROC,
+    randomForest,
+    ranger,
+    rmarkdown,
+    roxygen2,
+    testthat (>= 3.0.0),
+    VGAM,
+    xgboost
 Config/testthat/edition: 3
+VignetteBuilder: knitr

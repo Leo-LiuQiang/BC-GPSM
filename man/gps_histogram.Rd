@@ -2,7 +2,7 @@
 % Please edit documentation in R/gps_histogram.R
 \name{gps_histogram}
 \alias{gps_histogram}
-\title{Plot overlaid histograms of Generalized Propensity Scores}
+\title{Plot overlaid histograms of non-crossfitted diagnostic GPS}
 \usage{
 gps_histogram(data, bins = 30, palette = NULL, alpha = 0.4, eps = 1e-06)
 }
@@ -21,5 +21,24 @@ gps_histogram(data, bins = 30, palette = NULL, alpha = 0.4, eps = 1e-06)
 A ggplot object showing overlaid histograms and density curves of GPS distributions
 }
 \description{
-Plot overlaid histograms of Generalized Propensity Scores
+Plot overlaid histograms of non-crossfitted diagnostic GPS
+}
+\examples{
+set.seed(1)
+n <- 75
+dat <- data.frame(
+  trt = factor(rep(c("A", "B", "C"), each = 25)),
+  x1 = rnorm(n),
+  x2 = runif(n)
+)
+
+gps_dat <- gps_pre_process(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:3,
+  gps_model = "logit"
+)
+
+gps_histogram(gps_dat, bins = 10)
 }

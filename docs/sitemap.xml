@@ -1,14 +1,19 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
-<url><loc>/404.html</loc></url>
-<url><loc>/LICENSE-text.html</loc></url>
-<url><loc>/LICENSE.html</loc></url>
-<url><loc>/authors.html</loc></url>
-<url><loc>/index.html</loc></url>
-<url><loc>/reference/build_contrast.html</loc></url>
-<url><loc>/reference/dr_gpsm.html</loc></url>
-<url><loc>/reference/gps_histogram.html</loc></url>
-<url><loc>/reference/gps_matching.html</loc></url>
-<url><loc>/reference/gps_pre_process.html</loc></url>
-<url><loc>/reference/index.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/404.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/LICENSE-text.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/LICENSE.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/articles/drgpsm-workflow.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/articles/index.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/authors.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/index.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/balance_check_plot.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/build_contrast.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/dr_gpsm.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/gps_histogram.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/gps_matching.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/gps_pre_process.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/index.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/pmatch_compute_V.html</loc></url>
+<url><loc>https://leo-liuqiang.github.io/BC-GPSM/reference/pmatch_fit_ps_fold.html</loc></url>
 </urlset>
 

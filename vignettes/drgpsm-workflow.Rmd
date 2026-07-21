@@ -1,0 +1,193 @@
+---
+title: "Minimal BC-GPSM Workflow"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Minimal BC-GPSM Workflow}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5
+)
+```
+
+This article shows a minimal end-to-end workflow for `BC.GPSM` (`BC-GPSM`). The example
+uses simulated data with three treatment groups, six baseline covariates, and a
+continuous outcome.
+
+```{r setup, include=FALSE}
+if (identical(tolower(Sys.getenv("IN_PKGDOWN")), "true")) {
+  r_dir <- if (dir.exists("R")) "R" else file.path("..", "R")
+  if (dir.exists(r_dir)) {
+    invisible(lapply(list.files(r_dir, pattern = "[.]R$", full.names = TRUE), source))
+  }
+} else {
+  library(BC.GPSM)
+}
+```
+
+```{r load-package, eval=FALSE}
+library(BC.GPSM)
+```
+
+## Simulate Example Data
+
+```{r simulate-data}
+set.seed(123)
+n <- 300
+z1 <- rnorm(n)
+z2 <- rnorm(n)
+age <- 50 + 8 * z1
+biomarker <- 0.6 * z2 + rnorm(n, sd = 0.5)
+severity <- 0.35 * z1 - 0.25 * z2 + rnorm(n, sd = 0.9)
+distance <- runif(n, -1, 1)
+prior_tx <- rbinom(n, 1, plogis(0.1 * z1 - 0.1 * z2))
+clinic <- factor(rbinom(n, 1, 0.45), labels = c("Rural", "Urban"))
+
+score <- cbind(
+  A = 0,
+  B = 0.35 * (0.05 * (age - 50) - 0.20 * biomarker +
+    0.18 * severity + 0.20 * prior_tx),
+  C = 0.35 * (-0.02 * (age - 50) + 0.25 * biomarker -
+    0.18 * distance + 0.18 * (clinic == "Urban"))
+)
+prob <- exp(score) / rowSums(exp(score))
+trt <- apply(prob, 1, function(p) sample(c("A", "B", "C"), 1, prob = p))
+
+dat <- data.frame(
+  trt = factor(trt, levels = c("A", "B", "C")),
+  age = age,
+  biomarker = biomarker,
+  severity = severity,
+  distance = distance,
+  prior_tx = prior_tx,
+  clinic = clinic
+)
+dat$y <- 1 + 0.5 * (dat$trt == "B") + 1.0 * (dat$trt == "C") +
+  0.03 * age - 0.4 * biomarker + 0.25 * severity - 0.2 * distance +
+  0.3 * prior_tx + 0.2 * (clinic == "Urban") + rnorm(n)
+
+head(dat)
+```
+
+## Fit the Main Estimator
+
+Use `dr_gpsm()` for the cross-fitted estimator. In this example, treatment
+`A` is used as the reference group, so contrast labels such as `BvA` mean
+the estimated mean potential outcome under `B` minus the estimated mean
+potential outcome under `A`.
+
+```{r fit-dr-gpsm}
+fit <- dr_gpsm(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  outcome = 8,
+  gps_model = "logit",
+  outcome_model = "lm",
+  folds = 2,
+  nboot = 50
+)
+
+data.frame(
+  contrast = names(fit$estimate),
+  estimate = fit$estimate,
+  ci_lower = fit$ci_lower,
+  ci_upper = fit$ci_upper,
+  row.names = NULL
+)
+```
+
+For final analyses, use a larger `nboot` such as `500` or more. The smaller
+value above keeps the example quick to run.
+
+## Inspect GPS Overlap
+
+`gps_pre_process()` can fit a full-sample diagnostic GPS model and add `gps_`
+and `loggps_` columns. These diagnostic scores are useful for visualizing
+overlap; `dr_gpsm()` itself uses cross-fitted GPS values internally.
+
+```{r gps-diagnostic}
+gps_dat <- gps_pre_process(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  gps_model = "logit"
+)
+
+gps_histogram(gps_dat, bins = 20)
+```
+
+## Check Covariate Balance
+
+Use `balance_check_plot()` to compare pairwise covariate balance before and
+after nearest-neighbor matching. The plot reports absolute standardized mean
+differences; smaller values indicate better balance. The example standardizes
+covariates before matching so that variables on different scales contribute
+comparably to the matching distance.
+
+```{r balance-check}
+balance_check_plot(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  match_on = "covariates",
+  standardize = TRUE,
+  style = "love"
+)
+```
+
+The same function can also use existing `loggps_*` columns. For example, after
+creating `gps_dat` above:
+
+```{r balance-check-gps, eval=FALSE}
+balance_check_plot(
+  data = gps_dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  match_on = "gps",
+  fit_gps = FALSE
+)
+```
+
+## Choosing Options
+
+Start with transparent models:
+
+- `gps_model = "logit"` for multinomial logistic GPS estimation;
+- `outcome_model = "lm"` for a simple outcome-regression adjustment;
+- `treatment_ref` set explicitly when a natural control group exists.
+
+Then compare sensitivity to more flexible nuisance models such as `gbm`,
+`rf`, or `gam` when the sample size is large enough to support them.
+
+## Optional Learners and Tuning
+
+The baseline `logit + lm` workflow does not require the optional modeling
+stack. Install only the packages needed by the selected model or tuning path:
+
+```{r optional-packages, eval=FALSE}
+install.packages(c(
+  "gbm", "mgcv", "VGAM", "randomForest", "glmnet",
+  "caret", "ModelMetrics", "pROC", "foreach"
+))
+```
+
+`xgboost` and `ranger` provide additional GPS and outcome-model backends:
+
+```{r experimental-packages, eval=FALSE}
+install.packages(c("xgboost", "ranger"))
+```
+
+These two backends are experimental and remain under active testing. For now,
+use them as sensitivity analyses and report their package versions and model
+settings whenever results are shared.

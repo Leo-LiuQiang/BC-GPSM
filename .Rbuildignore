@@ -1,7 +1,16 @@
-^DR\.GPSM\.Rproj$
+^BC-GPSM\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^README\.Rmd$
 ^_pkgdown\.yml$
 ^docs$
 ^pkgdown$
+^\.git$
+^\.gitignore$
+^\.DS_Store$
+^\.Rhistory$
+^\.RData$
+^R/\.Rhistory$
+^R/\.RData$
+^tests/\.DS_Store$
+^tests/testthat/\.Rhistory$

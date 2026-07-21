@@ -1,38 +1,22 @@
-test_that("build_contrast works with default reference (first level)", {
-  levs <- c("A", "B", "C")
-  mat <- build_contrast(levs)
+test_that("build_contrast uses the last level as the default reference", {
+  contrast <- build_contrast(c("A", "B", "C"))
 
-  expect_true(is.matrix(mat))
-
-  expect_equal(dim(mat), c(3, 3))
-
-  expect_true(all(mat %in% c(-1, 0, 1)))
-
-  expect_true(all(grepl("v", rownames(mat))))
-
-  expect_equal(colnames(mat), levs)
+  expect_equal(dim(contrast), c(3L, 3L))
+  expect_equal(colnames(contrast), c("A", "B", "C"))
+  expect_true(all(c("BvA", "AvC", "BvC") %in% rownames(contrast)))
+  expect_equal(unname(contrast["AvC", ]), c(1, 0, -1))
+  expect_equal(unname(contrast["BvC", ]), c(0, 1, -1))
 })
 
-test_that("build_contrast uses specified reference level correctly", {
-  levs <- c("A", "B", "C")
-  mat_default <- build_contrast(levs)
-  mat_Bref    <- build_contrast(levs, ref="B")
+test_that("build_contrast orients contrasts against an explicit reference", {
+  contrast <- build_contrast(c("A", "B", "C"), ref = "A")
 
-  expect_false(all(mat_default == mat_Bref))
-
-  expect_equal(dim(mat_Bref), c(3, 3))
+  expect_equal(unname(contrast["BvA", ]), c(-1, 1, 0))
+  expect_equal(unname(contrast["CvA", ]), c(-1, 0, 1))
+  expect_equal(unname(contrast["CvB", ]), c(0, -1, 1))
 })
 
-test_that("build_contrast errors if ref not in levels", {
-  levs <- c("A", "B", "C")
-
-  expect_error(build_contrast(levs, ref="Z"))
-})
-
-test_that("build_contrast works with 2 levels", {
-  levs <- c("T1", "T2")
-  mat <- build_contrast(levs)
-
-  expect_equal(dim(mat), c(1, 2))
-  expect_true(all(mat %in% c(-1, 0, 1)))
+test_that("build_contrast validates treatment levels and reference", {
+  expect_error(build_contrast("A"), "at least two")
+  expect_error(build_contrast(c("A", "B"), ref = "C"), "ref")
 })

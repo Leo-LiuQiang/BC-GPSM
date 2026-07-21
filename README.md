@@ -1,157 +1,220 @@
 
-# Doubly-Robust Generalized Propensity Score Matching
+# Bias Corrected Generalized Propensity Score Matching
 
-## Overview
+**BC-GPSM** implements bias-corrected generalized propensity score
+matching for observational studies with binary or multi-valued
+treatments, with optional doubly robust outcome adjustment.
 
-**DR.GPSM** (Doubly-Robust Generalized Propensity Score Matching) is an
-R package implementing the *Balance-based Generalized Propensity Score
-Matching* (BGPSM) framework proposed by Dr. Mingrui Zhang and Dr. Yuan
-Liu.
-
-This method addresses the challenge of estimating **average treatment
-effects (ATE)** in **observational studies with multi-valued
-treatments**, combining:
-
-- **Generalized Propensity Score (GPS)** modeling, to account for
-  confounding;
-- **Matching** strategies across multiple treatment groups, to construct
-  balanced cohorts;
-- **Doubly-robust adjustment** using optional outcome models to improve
-  estimation efficiency and reduce bias.
-
-The package is designed for researchers in **causal inference**,
-**epidemiology**, **health services research**, and **social sciences**
-who need flexible and statistically rigorous tools for ATE estimation
-with **2+ treatment groups**.
-
-------------------------------------------------------------------------
-
-## Key Features
-
-- **Generalized Propensity Score (GPS) modeling** using:
-
-  - Logistic multinomial regression (`logit`)
-  - Random Forest (`rf`)
-  - Gradient Boosted Models (`gbm`)
-  - Generalized Additive Models (`gam`)
-
-- **Balance-based matching algorithm** that constructs matched sets
-  across all treatment levels simultaneously.
-
-- **Doubly-robust estimation** with optional outcome regression (`none`,
-  `lm`, `rf`) for bias correction.
-
-- **Visualization utilities** for GPS distribution (overlay histograms).
-
-- Designed for both **binary** and **multi-valued** treatments.
-
-------------------------------------------------------------------------
-
-## Background
-
-In observational studies, treatments are not randomly assigned, leading
-to potential **confounding bias** when estimating the causal effect of
-treatment on outcomes.
-
-**Imbens (2000)** generalized the propensity score framework to
-multi-valued treatments. Since then, multiple approaches (matching,
-weighting, regression, clustering) have been developed to estimate ATE
-in these settings.
-
-**Matching-based strategies** (Lechner, 2001; Yang et al., 2016) are
-attractive because they create *balanced pseudo-cohorts* that emulate
-randomized trials. However, traditional pairwise or trio-based matching
-approaches suffer from:
-
-- **Inconsistent target populations** across pairwise contrasts;
-- **Computational burden** when the number of treatment groups grows.
-
-The **Balance-based GPS Matching** method by Zhang and Liu (2022)
-improves upon these limitations by:
-
-- Matching across **all treatment levels simultaneously**;
-- Introducing a **balance-based stopping rule** to prune poor matches;
-- Allowing **doubly-robust bias correction** via outcome regression.
-
-------------------------------------------------------------------------
-
-## Functions
-
-| Function            | Description                                                                    |
-|---------------------|--------------------------------------------------------------------------------|
-| `dr_gpsm()`         | **Main API**: Doubly-robust GPS matching estimator for ATE.                    |
-| `gps_pre_process()` | Fits the GPS model and augments the dataset with `gps_` and `loggps_` columns. |
-| `gps_matching()`    | Core matching engine that computes pairwise contrasts and bootstrapped CIs.    |
-| `build_contrast()`  | Generates all pairwise contrast matrices for multiple treatments.              |
-| `gps_histogram()`   | Plots overlaid histograms of GPS distributions for all treatment levels.       |
-
-------------------------------------------------------------------------
-
-## Methodology
-
-**Causal Framework**
-
-- **Treatments:** $T \in \{ t_1, t_2, ..., t_Z \}$  
-- **Outcome:** Continuous response $Y$  
-- **Covariates:** $X$
-
-Assumptions: - **Strong unconfoundedness:**
-$T \perp (Y(t_1), ..., Y(t_Z)) \mid X$  
-- **Positivity:** $P(T = t \mid X = x) > \eta$
-
-Under these assumptions, the **average treatment effect** is
-identifiable: $$
-\tau(t,t') = E[Y(t) - Y(t')]
-$$
-
-**BGPSM Algorithm Highlights** 1. Estimate GPS:
-$r(t,x) = P(T = t \mid X = x)$ 2. Construct **matching sets** using
-nearest neighbor search on the GPS vector. 3. Apply a **balance-based
-stopping rule** to exclude poor matches. 4. Optionally fit **outcome
-regression models** (linear, RF) for **doubly-robust** bias correction.
-5. Compute ATEs with bootstrap confidence intervals.
-
-------------------------------------------------------------------------
+The package is intended for causal-inference workflows where users have
+a treatment variable, a set of baseline covariates, and an outcome, and
+want pairwise treatment contrasts with bootstrap confidence intervals.
 
 ## Installation
 
 ``` r
-# From GitHub (recommended)
-devtools::install_github("Leo-LiuQiang/DR.GPSM")
+# install.packages("devtools")
+devtools::install_github("Leo-LiuQiang/BC-GPSM")
 ```
 
-## Usage
+The baseline `gps_model = "logit"` and `outcome_model = "lm"` workflow
+is available without installing the optional modeling stack. Install
+only the extensions needed for a planned analysis:
 
 ``` r
-library(DR.GPSM)
+install.packages(c(
+  "gbm", "mgcv", "VGAM", "randomForest", "glmnet",
+  "caret", "ModelMetrics", "pROC", "foreach"
+))
 
-# Simulated example
+# Experimental backends; install only when testing these model choices.
+install.packages(c("xgboost", "ranger"))
+```
+
+Flexible learners and tuning integrations are optional. The XGBoost and
+ranger GPS and outcome backends are still in testing development and
+should currently be treated as experimental sensitivity analyses, not
+default specifications.
+
+## Quick Start
+
+``` r
+library(BC.GPSM)
+
 set.seed(123)
-n <- 100
-dat <- data.frame(
-  trt = factor(sample(c("A","B","C"), n, replace=TRUE)),
-  x1 = rnorm(n),
-  x2 = runif(n),
-  y  = rnorm(n)
-)
+n <- 300
+z1 <- rnorm(n)
+z2 <- rnorm(n)
+age <- 50 + 8 * z1
+biomarker <- 0.6 * z2 + rnorm(n, sd = 0.5)
+severity <- 0.35 * z1 - 0.25 * z2 + rnorm(n, sd = 0.9)
+distance <- runif(n, -1, 1)
+prior_tx <- rbinom(n, 1, plogis(0.1 * z1 - 0.1 * z2))
+clinic <- factor(rbinom(n, 1, 0.45), labels = c("Rural", "Urban"))
 
-# Run doubly-robust GPS matching
-res <- dr_gpsm(
+score <- cbind(
+  A = 0,
+  B = 0.35 * (0.05 * (age - 50) - 0.20 * biomarker +
+    0.18 * severity + 0.20 * prior_tx),
+  C = 0.35 * (-0.02 * (age - 50) + 0.25 * biomarker -
+    0.18 * distance + 0.18 * (clinic == "Urban"))
+)
+prob <- exp(score) / rowSums(exp(score))
+trt <- apply(prob, 1, function(p) sample(c("A", "B", "C"), 1, prob = p))
+
+dat <- data.frame(
+  trt = factor(trt, levels = c("A", "B", "C")),
+  age = age,
+  biomarker = biomarker,
+  severity = severity,
+  distance = distance,
+  prior_tx = prior_tx,
+  clinic = clinic
+)
+dat$y <- 1 + 0.5 * (dat$trt == "B") + 1.0 * (dat$trt == "C") +
+  0.03 * age - 0.4 * biomarker + 0.25 * severity - 0.2 * distance +
+  0.3 * prior_tx + 0.2 * (clinic == "Urban") + rnorm(n)
+
+fit <- dr_gpsm(
   data = dat,
   treatment = 1,
   treatment_ref = "A",
-  covariate = 2:3,
-  outcome = 4,
+  covariate = 2:7,
+  outcome = 8,
   gps_model = "logit",
   outcome_model = "lm",
   folds = 2,
   nboot = 50
 )
 
-res$estimate
-
-# Visualization of generalized propensity score overlap
-gps_df <- gps_pre_process(dat, treatment=1, covariate=2:3, gps_model="logit")
-p <- gps_histogram(gps_df)
-print(p)
+data.frame(
+  contrast = names(fit$estimate),
+  estimate = fit$estimate,
+  ci_lower = fit$ci_lower,
+  ci_upper = fit$ci_upper,
+  row.names = NULL
+)
 ```
+
+For a first real analysis, start with `gps_model = "logit"` and
+`outcome_model = "lm"`, then compare with optional flexible nuisance
+models such as `gbm`, `gam`, or `rf` if the sample size supports them.
+XGBoost and ranger remain experimental. Use a larger `nboot` such as
+`500` or more for final reporting.
+
+## GPS Overlap Diagnostic
+
+``` r
+gps_dat <- gps_pre_process(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  gps_model = "logit"
+)
+
+gps_histogram(gps_dat)
+```
+
+You can also ask `dr_gpsm()` to save this diagnostic plot:
+
+``` r
+dr_gpsm(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  outcome = 8,
+  gps_model = "logit",
+  outcome_model = "lm",
+  hist = TRUE,
+  hist_path = tempfile(fileext = ".pdf"),
+  nboot = 20
+)
+```
+
+## Balance Diagnostic
+
+Use `balance_check_plot()` to compare pairwise covariate balance before
+and after nearest-neighbor matching. The function reports absolute
+standardized mean differences and returns a `ggplot2` object. The
+example standardizes covariates before matching so that variables on
+different scales contribute comparably to the matching distance.
+
+``` r
+balance_check_plot(
+  data = dat,
+  treatment = 1,
+  treatment_ref = "A",
+  covariate = 2:7,
+  match_on = "covariates",
+  standardize = TRUE,
+  style = "love"
+)
+```
+
+## Choosing Common Options
+
+| Argument | Practical guidance |
+|----|----|
+| `treatment_ref` | Reference treatment for contrast labels and GPS log-ratios. If omitted, the default is the last treatment level. Set it explicitly when a particular control group should be the reference. |
+| `gps_model` | Use `"logit"` as the transparent baseline. `"gbm"` and `"gam"` are optional flexible learners; `"xgboost"` and `"ranger"` are optional experimental backends. |
+| `outcome_model` | Use `"none"` for matching-only estimation and `"lm"` for the baseline outcome adjustment. `"rf"`, `"gbm"`, and `"gam"` are optional flexible learners; `"xgboost"` and `"ranger"` are experimental. |
+| `folds` | Number of cross-fitting folds. Smaller values are faster; larger values may stabilize nuisance estimation in larger datasets. |
+| `nboot` | Number of bootstrap replications for confidence intervals. Small values are useful for examples only. |
+| `match_on` | `"gps"` matches on the GPS log-ratio index. `"covariates"` matches directly on the supplied covariates. |
+
+## Interpreting Output
+
+`dr_gpsm()` returns a list with:
+
+- `estimate`: estimated pairwise average treatment effects;
+- `ci_lower`: lower confidence limits;
+- `ci_upper`: upper confidence limits.
+
+Contrast names use the form `BvA`, meaning the estimated mean potential
+outcome under treatment `B` minus the estimated mean potential outcome
+under treatment `A`.
+
+## Main Functions
+
+| Function | Purpose |
+|----|----|
+| `dr_gpsm()` | Main estimator for cross-fitted GPS matching with optional outcome adjustment. |
+| `gps_pre_process()` | Builds treatment factors, GPS columns, and log-GPS columns. |
+| `gps_matching()` | Lower-level matching engine used by `dr_gpsm()`. |
+| `build_contrast()` | Creates all pairwise treatment-contrast matrices. |
+| `gps_histogram()` | Plots GPS distributions to inspect overlap. |
+| `balance_check_plot()` | Creates Love plots for covariate balance before and after matching. |
+
+## Method in Brief
+
+The workflow has four main steps:
+
+1.  Estimate treatment probabilities, also called generalized propensity
+    scores.
+2.  Convert the GPS to log-ratio matching features relative to a
+    reference treatment.
+3.  Match observations across treatment groups.
+4.  Estimate pairwise treatment effects, optionally using
+    outcome-regression predictions for doubly robust adjustment.
+
+The manuscript contains the full theoretical framework and assumptions.
+The README focuses on the package workflow and the function arguments
+most users need first.
+
+## Troubleshooting
+
+- If `dr_gpsm()` reports too few observations in a treatment arm, reduce
+  `folds`, combine rare treatment levels, or use a larger dataset.
+- If GPS diagnostics show poor overlap, interpret the affected contrasts
+  with caution.
+- Optional learners are checked only when selected. If one is
+  unavailable, the error message names the package and its installation
+  command.
+- The `xgboost` and `ranger` backends are under active testing; keep
+  them out of primary analyses until their behavior is better validated.
+- If flexible models are slow, begin with `gps_model = "logit"` and
+  `outcome_model = "lm"` before adding tuning or machine-learning
+  models.
+- If a treatment should be the control group in labels such as `BvA`,
+  set `treatment_ref` explicitly.

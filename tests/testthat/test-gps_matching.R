@@ -1,73 +1,86 @@
-test_that("gps_matching returns correct structure with simple input", {
-  set.seed(123)
+test_that("gps_matching returns estimates and per-unit contributions for GPS matching", {
+  dat <- make_three_arm_data(n_per_arm = 5, seed = 31)
+  dat <- gps_pre_process(
+    dat,
+    treatment = 1,
+    treatment_ref = "A",
+    covariate = 2:3,
+    fit_gps = FALSE
+  )
+  dat$loggps_B <- seq(-1, 1, length.out = nrow(dat))
+  dat$loggps_C <- seq(1, -1, length.out = nrow(dat))
 
-  df <- data.frame(
-    trt = factor(rep(c("A", "B"), each = 3)),
-    y   = c(1, 2, 3, 4, 5, 6),
-    loggps_B = runif(6)
+  contrast <- build_contrast(levels(dat$trt), ref = "A")
+  pred <- make_prediction_matrix(dat)
+
+  fit <- gps_matching(
+    data = dat,
+    treatment = 1,
+    outcome = 4,
+    pred = pred,
+    contrast = contrast,
+    return_tau = TRUE,
+    do_boot = FALSE
   )
 
-  contrast <- matrix(c(-1, 1), nrow = 1, byrow = TRUE)
-  colnames(contrast) <- c("A", "B")
-  rownames(contrast) <- "BvA"
-
-  pred <- matrix(0, nrow = 2, ncol = 6)
-
-  out <- gps_matching(df, treatment = 1, outcome = 2,
-                      pred = pred,
-                      contrast = contrast,
-                      nboot = 5)
-
-  expect_type(out, "list")
-  expect_named(out, c("estimate", "ci_lower", "ci_upper"))
-
-  expect_equal(length(out$estimate), nrow(contrast))
-  expect_equal(names(out$estimate), rownames(contrast))
+  expect_named(fit$estimate, rownames(contrast))
+  expect_true(all(is.finite(fit$estimate)))
+  expect_true(all(is.na(fit$ci_lower)))
+  expect_true(all(is.na(fit$ci_upper)))
+  expect_equal(dim(fit$tau), c(nrow(contrast), nrow(dat)))
+  expect_equal(dim(fit$psi), c(length(levels(dat$trt)), nrow(dat)))
 })
 
-test_that("gps_matching errors if loggps column is missing", {
-  df <- data.frame(
-    trt = factor(rep(c("A", "B"), each = 3)),
-    y   = c(1, 2, 3, 4, 5, 6)
+test_that("gps_matching supports covariate matching", {
+  dat <- make_three_arm_data(n_per_arm = 5, seed = 32)
+  dat <- gps_pre_process(
+    dat,
+    treatment = 1,
+    treatment_ref = "A",
+    covariate = 2:3,
+    fit_gps = FALSE
   )
 
-  contrast <- matrix(c(-1, 1), nrow = 1)
-  colnames(contrast) <- c("A", "B")
-  rownames(contrast) <- "BvA"
+  contrast <- build_contrast(levels(dat$trt), ref = "A")
+  pred <- make_prediction_matrix(dat)
 
-  pred <- matrix(0, nrow = 2, ncol = 6)
+  fit <- gps_matching(
+    data = dat,
+    treatment = 1,
+    outcome = 4,
+    pred = pred,
+    contrast = contrast,
+    match_on = "covariates",
+    covariate = 2:3,
+    do_boot = FALSE
+  )
+
+  expect_named(fit$estimate, rownames(contrast))
+  expect_true(all(is.finite(fit$estimate)))
+})
+
+test_that("gps_matching validates required inputs", {
+  dat <- make_three_arm_data(n_per_arm = 4, seed = 33)
+  dat <- gps_pre_process(
+    dat,
+    treatment = 1,
+    treatment_ref = "A",
+    covariate = 2:3,
+    fit_gps = FALSE
+  )
+  contrast <- build_contrast(levels(dat$trt), ref = "A")
+  pred <- make_prediction_matrix(dat)
 
   expect_error(
-    gps_matching(df, treatment = 1, outcome = 2,
-                 pred = pred, contrast = contrast, nboot = 5),
-    regexp = "Can't find loggps"
+    gps_matching(
+      data = dat,
+      treatment = 1,
+      outcome = 4,
+      pred = pred,
+      contrast = contrast,
+      match_on = "covariates",
+      do_boot = FALSE
+    ),
+    "covariate"
   )
-})
-
-test_that("gps_matching works with 3 treatment levels", {
-  set.seed(456)
-
-  df <- data.frame(
-    trt = factor(rep(c("A", "B", "C"), each = 2)),
-    y   = c(1,2,3,4,5,6),
-    loggps_B = runif(6),
-    loggps_C = runif(6)
-  )
-
-  contrast <- matrix(c(
-    -1,  1,  0,
-    -1,  0,  1,
-    0, -1,  1
-  ), nrow = 3, byrow = TRUE)
-
-  colnames(contrast) <- c("A", "B", "C")
-  rownames(contrast) <- c("BvA", "CvA", "CvB")
-
-  pred <- matrix(0, nrow = 3, ncol = 6)
-
-  out <- gps_matching(df, treatment = 1, outcome = 2,
-                      pred = pred, contrast = contrast, nboot = 5)
-
-  expect_named(out, c("estimate", "ci_lower", "ci_upper"))
-  expect_equal(length(out$estimate), 3)
 })
