@@ -26,8 +26,8 @@ Description: Implements bias-corrected generalized propensity score matching
     treatment-specific outcome adjustment, and provides overlap and covariate
     balance diagnostics. Multinomial logistic propensity scores and linear
     outcome models provide the baseline workflow. Flexible learners and tuning
-    integrations are optional; the XGBoost and ranger backends are experimental
-    and remain under active testing.
+    are optional; support for the suggested packages 'xgboost' and 'ranger' is
+    experimental and remains under active testing.
 URL: https://leo-liuqiang.github.io/BC-GPSM/, https://github.com/Leo-LiuQiang/BC-GPSM
 BugReports: https://github.com/Leo-LiuQiang/BC-GPSM/issues
 License: MIT + file LICENSE
